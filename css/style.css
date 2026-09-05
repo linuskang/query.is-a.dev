@@ -1,0 +1,52 @@
+:root {
+  --accent: #7041ff;
+  --body-fg: #d1c4ff;
+  --body-bg: #0f0c19;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--body-bg);
+  color: var(--body-fg);
+  font-family: "Roboto", sans-serif;
+  line-height: 1.6;
+  padding: 20px;
+}
+
+.terminal-text {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 2px solid rgba(112, 65, 255, 0.2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0f0c19;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #9b7dff;
+}

@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Query is-a.dev</title>
+    <meta name="description"
+        content="WHOIS query service for is-a.dev subdomains. Look up domain ownership, DNS records and registry statistics.">
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- Scripts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
+    <link rel="preconnect" href="https://raw.is-a.dev/v2.json">
+
+    <!-- Favicon -->
+    <link rel="shortcut icon" href="https://is-a.dev/assets/favicon.ico" type="image/x-icon">
+</head>
+
+<body class="min-h-screen">
+    <main class="mx-auto max-w-6xl px-6 py-12">
+        <div class="mb-10">
+            <h1 class="text-4xl font-bold tracking-tight text-[var(--accent)] pb-6 border-b border-[var(--accent)]">
+                Unofficial is-a.dev WHOIS
+            </h1>
+        </div>
+
+        <!-- WHOIS Query -->
+        <div class="border border-[var(--accent)] rounded-xl p-6">
+            <form id="whois-form" autocomplete="off">
+                <label for="whois-input" class="block text-md text-[var(--body-fg)]/70 mb-3">Domain or subdomain</label>
+                <div class="flex flex-col gap-3 sm:flex-row">
+                    <input id="whois-input" type="text" spellcheck="false" placeholder="example.is-a.dev"
+                        class="terminal-text flex-1 rounded-lg border border-[var(--accent)]/50 bg-black/30 px-4 py-3 text-[var(--body-fg)] placeholder:text-[var(--body-fg)]/40 focus:border-[var(--accent)] focus:outline-none">
+                    <button type="submit"
+                        class="rounded-lg bg-[var(--accent)] px-8 py-3 font-semibold text-white transition hover:bg-[#9b7dff] cursor-pointer">Query</button>
+                </div>
+                <p class="mt-3 text-sm text-[var(--body-fg)]/50">Enter a subdomain, e.g. <button type="button"
+                        class="query-example text-[var(--accent)] hover:underline cursor-pointer">william</button>,
+                    <button type="button"
+                        class="query-example text-[var(--accent)] hover:underline cursor-pointer">data.is-a.dev</button>
+                    or
+                    <button type="button"
+                        class="query-example text-[var(--accent)] hover:underline cursor-pointer">www.mouadbensaid</button>
+                </p>
+            </form>
+        </div>
+
+        <div id="query-loading" class="hidden py-12 flex justify-center items-center">
+            <div class="spinner"></div>
+        </div>
+
+        <div id="query-error" class="hidden mt-6 rounded-xl border border-red-500 bg-red-900/20 p-4 text-red-400"></div>
+
+        <!-- WHOIS Result -->
+        <div id="result" class="hidden">
+            <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div class="border border-[var(--accent)] rounded-xl p-6">
+                    <p class="text-md text-[var(--body-fg)]/70">Status</p>
+                    <p id="result-status" class="mt-2 text-3xl font-bold text-[var(--accent)]"></p>
+                </div>
+                <div class="border border-[var(--accent)] rounded-xl p-6">
+                    <p class="text-md text-[var(--body-fg)]/70">Domain</p>
+                    <p id="result-domain" class="mt-2 text-2xl font-bold text-[var(--accent)] break-all"></p>
+                </div>
+                <div class="border border-[var(--accent)] rounded-xl p-6">
+                    <p class="text-md text-[var(--body-fg)]/70">Owner</p>
+                    <p id="result-owner" class="mt-2 text-2xl font-bold text-[var(--accent)] break-all"></p>
+                </div>
+            </div>
+
+            <div class="mt-6 border border-[var(--accent)] rounded-xl overflow-hidden">
+                <div class="border-b border-[var(--accent)] px-6 py-5 flex items-center justify-between">
+                    <h2 class="text-xl font-semibold text-[var(--accent)]">WHOIS Record</h2>
+                    <button id="copy-whois"
+                        class="text-sm text-[var(--body-fg)]/60 hover:text-[var(--accent)] transition cursor-pointer">Copy</button>
+                </div>
+                <pre id="whois-output"
+                    class="terminal-text overflow-x-auto bg-black/30 px-6 py-5 text-sm leading-relaxed"></pre>
+            </div>
+
+            <div id="records-card" class="mt-6 border border-[var(--accent)] rounded-xl overflow-hidden hidden">
+                <div class="border-b border-[var(--accent)] px-6 py-5">
+                    <h2 class="text-xl font-semibold text-[var(--accent)]">DNS Records</h2>
+                </div>
+                <ul id="records-list" class="divide-y divide-[var(--accent)]"></ul>
+            </div>
+        </div>
+
+        <!-- Registry Statistics -->
+        <div class="mt-14 mb-8">
+            <h2 class="text-3xl font-bold tracking-tight text-[var(--accent)] pb-6 border-b border-[var(--accent)]">
+                Registry Statistics</h2>
+        </div>
+
+        <div id="loading" class="py-12 flex justify-center items-center">
+            <div class="spinner"></div>
+        </div>
+
+        <div id="error" class="hidden rounded-xl border border-red-500 bg-red-900/20 p-4 text-red-400"></div>
+
+        <div id="content" class="hidden">
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="border border-[var(--accent)] rounded-xl p-6">
+                    <p class="text-md text-[var(--body-fg)]/70">Users</p>
+                    <p id="unique-users" class="mt-2 text-3xl font-bold text-[var(--accent)]">0</p>
+                </div>
+                <div class="border border-[var(--accent)] rounded-xl p-6">
+                    <p class="text-md text-[var(--body-fg)]/70">Subdomains</p>
+                    <p id="subdomains" class="mt-2 text-3xl font-bold text-[var(--accent)]">0</p>
+                </div>
+                <div class="border border-[var(--accent)] rounded-xl p-6">
+                    <p class="text-md text-[var(--body-fg)]/70">DNS Records</p>
+                    <p id="records" class="mt-2 text-3xl font-bold text-[var(--accent)]">0</p>
+                </div>
+                <div class="border border-[var(--accent)] rounded-xl p-6">
+                    <p class="text-md text-[var(--body-fg)]/70">Subomains per user (avg.)</p>
+                    <p id="average-domains-per-user" class="mt-2 text-3xl font-bold text-[var(--accent)]">0</p>
+                </div>
+            </div>
+
+            <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+                <div class="border border-[var(--accent)] rounded-xl p-6">
+                    <h2 class="text-xl font-semibold text-[var(--accent)] mb-4">DNS Record Types</h2>
+                    <div class="relative h-80">
+                        <canvas id="record-types-chart"></canvas>
+                    </div>
+                </div>
+                <div class="border border-[var(--accent)] rounded-xl p-6">
+                    <h2 class="text-xl font-semibold text-[var(--accent)] mb-4">Top 10 Users</h2>
+                    <div class="relative h-80">
+                        <canvas id="top-users-chart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-1 lg:grid-cols-3">
+                <div class="border border-[var(--accent)] rounded-xl p-6">
+                    <p class="text-md text-[var(--body-fg)]/70">Subdomains with websites</p>
+                    <p id="subdomains-with-websites" class="mt-2 text-3xl font-bold text-[var(--accent)]">0</p>
+                </div>
+                <div class="border border-[var(--accent)] rounded-xl p-6">
+                    <p class="text-md text-[var(--body-fg)]/70">Subdomains using URL redirects</p>
+                    <p id="subdomains-with-url" class="mt-2 text-3xl font-bold text-[var(--accent)]">0</p>
+                </div>
+                <div class="border border-[var(--accent)] rounded-xl p-6">
+                    <p class="text-md text-[var(--body-fg)]/70">Subdomains with email</p>
+                    <p id="subdomains-with-email" class="mt-2 text-3xl font-bold text-[var(--accent)]">0</p>
+                </div>
+            </div>
+
+            <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
+                <div class="border border-[var(--accent)] rounded-xl p-6">
+                    <p class="text-md text-[var(--body-fg)]/70">Subdomains using GitHub Pages</p>
+                    <p class="text-xs text-gray-400">* Percentage is calculated based on subdomains with websites</p>
+                    <p id="github-pages" class="mt-2 text-3xl font-bold text-[var(--accent)]">0</p>
+                </div>
+                <div class="border border-[var(--accent)] rounded-xl p-6">
+                    <p class="text-md text-[var(--body-fg)]/70">Subdomains using Cloudflare Pages</p>
+                    <p class="text-xs text-gray-400">* Percentage is calculated based on subdomains with websites</p>
+                    <p id="cloudflare-pages" class="mt-2 text-3xl font-bold text-[var(--accent)]">0</p>
+                </div>
+            </div>
+
+            <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2">
+                <div class="border border-[var(--accent)] rounded-xl p-6">
+                    <p class="text-md text-[var(--body-fg)]/70">Reserved subdomains</p>
+                    <p id="reserved-subdomains" class="mt-2 text-3xl font-bold text-[var(--accent)]">0</p>
+                </div>
+                <div class="border border-[var(--accent)] rounded-xl p-6">
+                    <p class="text-md text-[var(--body-fg)]/70">Subdomains proxied through Cloudflare</p>
+                    <p id="proxied-subdomains" class="mt-2 text-3xl font-bold text-[var(--accent)]">0</p>
+                </div>
+            </div>
+
+            <div class="mt-6 border border-[var(--accent)] rounded-xl overflow-hidden">
+                <div class="border-b border-[var(--accent)] px-6 py-5">
+                    <h2 class="text-xl font-semibold text-[var(--accent)]">DNS Records</h2>
+                </div>
+                <ul id="stats-records-list" class="divide-y divide-[var(--accent)]">
+                </ul>
+            </div>
+
+            <div class="mt-6 border border-[var(--accent)] rounded-xl overflow-hidden">
+                <div class="border-b border-[var(--accent)] px-6 py-5">
+                    <h2 class="text-xl font-semibold text-[var(--accent)]">Data Sources</h2>
+                </div>
+
+                <ul class="divide-y divide-[var(--accent)]">
+                    <li class="flex items-center justify-between px-6 py-4">
+                        <span class="font-semibold">is-a.dev DNS Zone</span> <span id="zone-updated"
+                            class="text-gray-500"></span>
+                    </li>
+                    <li class="flex items-center justify-between px-6 py-4">
+                        <span class="font-semibold">Raw API</span> <span id="raw-api-updated"
+                            class="text-gray-500"></span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <footer>
+            <p class="mt-8 text-center text-md text-[var(--body-fg)]/70">
+                Fork of <a href="https://data.is-a.dev" class="text-[var(--accent)] hover:underline">data.is-a.dev</a>
+                made by <a href="https://link.linus.my/s/github" class="text-[var(--accent)] hover:underline">Linus
+                    Kang</a>.
+            </p>
+        </footer>
+    </main>
+
+    <script src="js/script.js"></script>
+</body>
+
+</html>
