@@ -1,11 +1,9 @@
-# is-a.dev WHOIS
+# Unofficial WHOIS service for is-a.dev
 
-A WHOIS query service for is-a.dev subdomains with registry statistics.
+Query up your domain's records and statistics.
 
-[query.is-a.dev](https://query.is-a.dev)
+Based off of https://github.com/is-a-dev/data.
 
-## About
+# License
 
-Look up the owner, status and DNS records of any `*.is-a.dev` subdomain and browse live registry statistics, powered by the [is-a.dev Raw API](https://raw.is-a.dev).
-
-UI based on the [is-a.dev Data Visualiser](https://github.com/is-a-dev/data).
+MIT
