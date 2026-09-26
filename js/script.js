@@ -131,12 +131,11 @@ function renderResult(status, data, query) {
                 const values = formatRecordValue(records[type]);
                 const list = Array.isArray(values) ? values : [values];
                 const rendered = list
-                    .map((value) => `<span class="terminal-text text-gray-400 break-all">${escapeHtml(value)}</span>`)
+                    .map((value) => `<span class="terminal-text text-gray-400 text-sm break-all">${escapeHtml(type)}: ${escapeHtml(value)}</span>`)
                     .join("");
                 return `
-          <li class="flex flex-col gap-1 px-6 py-4 sm:flex-row sm:items-start sm:justify-between">
-            <span class="font-semibold">${escapeHtml(type)}</span>
-            <span class="flex flex-col gap-1 sm:text-right">${rendered}</span>
+          <li class="flex flex-col gap-1 px-6 py-4">
+            <span class="flex flex-col gap-1">${rendered}</span>
           </li>
         `;
             })
@@ -256,7 +255,8 @@ function renderUserResult(username, profile, domains) {
     nameEl.textContent = profile?.name || username;
     linkEl.href = `https://github.com/${encodeURIComponent(username)}`;
     linkEl.textContent = `@${username}`;
-    countEl.textContent = formatNumber(domains.length);
+    const rootCount = domains.filter((domain) => !domain.subdomain.includes(".")).length;
+    countEl.textContent = formatNumber(rootCount);
     statusEl.textContent = domains.length ? "FOUND" : "NO DOMAINS";
     statusEl.classList.remove("text-emerald-400", "text-amber-400");
     statusEl.classList.add(domains.length ? "text-emerald-400" : "text-amber-400");
