@@ -88,6 +88,56 @@
             </div>
         </div>
 
+        <!-- GitHub User Query -->
+        <div class="mt-10 border border-[var(--accent)] rounded-xl p-6">
+            <form id="user-form" autocomplete="off">
+                <label for="user-input" class="block text-md text-[var(--body-fg)]/70 mb-3">GitHub username</label>
+                <div class="flex flex-col gap-3 sm:flex-row">
+                    <input id="user-input" type="text" spellcheck="false" placeholder="octocat"
+                        class="terminal-text flex-1 rounded-lg border border-[var(--accent)]/50 bg-black/30 px-4 py-3 text-[var(--body-fg)] placeholder:text-[var(--body-fg)]/40 focus:border-[var(--accent)] focus:outline-none">
+                    <button type="submit"
+                        class="rounded-lg bg-[var(--accent)] px-8 py-3 font-semibold text-white transition hover:bg-[#9b7dff] cursor-pointer">Query</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="user-loading" class="hidden py-12 flex justify-center items-center">
+            <div class="spinner"></div>
+        </div>
+
+        <div id="user-error" class="hidden mt-6 rounded-xl border border-red-500 bg-red-900/20 p-4 text-red-400"></div>
+
+        <!-- GitHub User Result -->
+        <div id="user-result" class="hidden">
+            <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div class="sm:col-span-1 border border-[var(--accent)] rounded-xl p-6 flex items-center gap-4">
+                    <img id="user-avatar" class="hidden w-16 h-16 rounded-full border border-[var(--accent)]" alt=""
+                        src="">
+                    <div>
+                        <p class="text-md text-[var(--body-fg)]/70">User</p>
+                        <p id="user-name" class="mt-1 text-2xl font-bold text-[var(--accent)] break-all"></p>
+                        <a id="user-github-link" href="#" target="_blank" rel="noopener"
+                            class="text-sm text-[var(--body-fg)]/70 hover:text-[var(--accent)] hover:underline break-all"></a>
+                    </div>
+                </div>
+                <div class="border border-[var(--accent)] rounded-xl p-6">
+                    <p class="text-md text-[var(--body-fg)]/70">is-a.dev Subdomains</p>
+                    <p id="user-domain-count" class="mt-2 text-3xl font-bold text-[var(--accent)]">0</p>
+                </div>
+                <div class="border border-[var(--accent)] rounded-xl p-6">
+                    <p class="text-md text-[var(--body-fg)]/70">Status</p>
+                    <p id="user-status" class="mt-2 text-3xl font-bold text-emerald-400"></p>
+                </div>
+            </div>
+
+            <div class="mt-6 border border-[var(--accent)] rounded-xl overflow-hidden">
+                <div class="border-b border-[var(--accent)] px-6 py-5">
+                    <h2 class="text-xl font-semibold text-[var(--accent)]">Subdomains</h2>
+                </div>
+                <ul id="user-domains-list" class="divide-y divide-[var(--accent)]"></ul>
+            </div>
+        </div>
+
         <!-- Registry Statistics -->
         <div class="mt-14 mb-8">
             <h2 class="text-3xl font-bold tracking-tight text-[var(--accent)] pb-6 border-b border-[var(--accent)]">

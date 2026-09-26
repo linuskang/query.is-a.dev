@@ -205,6 +205,141 @@ async function performQuery(rawQuery) {
     }
 }
 
+/* ------------------------- GitHub User Query ------------------------- */
+
+const GITHUB_API_BASE = "https://api.github.com/users";
+
+function normalizeUsername(raw) {
+    let query = raw.trim();
+    query = query.replace(/^https?:\/\/(www\.)?github\.com\//i, "");
+    query = query.split("/")[0].replace(/^@/, "");
+    return query.toLowerCase();
+}
+
+function isValidUsername(query) {
+    return /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/.test(query);
+}
+
+async function fetchUserProfile(username) {
+    const response = await fetch(`${GITHUB_API_BASE}/${encodeURIComponent(username)}`);
+    if (!response.ok) return null;
+    return response.json();
+}
+
+function formatUserDomainRecord(value) {
+    if (Array.isArray(value)) return value.join(", ");
+    if (value !== null && typeof value === "object") {
+        return Object.entries(value)
+            .map(([key, val]) => `${key}: ${val}`)
+            .join(", ");
+    }
+    return String(value);
+}
+
+function renderUserResult(username, profile, domains) {
+    const userResult = document.getElementById("user-result");
+    const avatarEl = document.getElementById("user-avatar");
+    const nameEl = document.getElementById("user-name");
+    const linkEl = document.getElementById("user-github-link");
+    const countEl = document.getElementById("user-domain-count");
+    const statusEl = document.getElementById("user-status");
+    const domainsList = document.getElementById("user-domains-list");
+
+    if (profile?.avatar_url) {
+        avatarEl.src = profile.avatar_url;
+        avatarEl.alt = `${username}'s avatar`;
+        avatarEl.classList.remove("hidden");
+    } else {
+        avatarEl.classList.add("hidden");
+    }
+
+    nameEl.textContent = profile?.name || username;
+    linkEl.href = `https://github.com/${encodeURIComponent(username)}`;
+    linkEl.textContent = `@${username}`;
+    countEl.textContent = formatNumber(domains.length);
+    statusEl.textContent = domains.length ? "FOUND" : "NO DOMAINS";
+    statusEl.classList.remove("text-emerald-400", "text-amber-400");
+    statusEl.classList.add(domains.length ? "text-emerald-400" : "text-amber-400");
+
+    if (domains.length) {
+        domainsList.innerHTML = domains
+            .sort((a, b) => a.subdomain.localeCompare(b.subdomain))
+            .map((domain) => {
+                const status = domain.reserved ? "RESERVED" : "REGISTERED";
+                const statusClass = domain.reserved ? "text-amber-400" : "text-emerald-400";
+                const records = domain.records || {};
+                const recordTypes = Object.keys(records).sort();
+                const recordsHtml = recordTypes
+                    .map((type) => {
+                        const value = formatUserDomainRecord(records[type]);
+                        return `<span class="terminal-text text-gray-400 text-sm break-all">${escapeHtml(type)}: ${escapeHtml(value)}</span>`;
+                    })
+                    .join("");
+                return `
+          <li class="flex flex-col gap-2 px-6 py-4 sm:flex-row sm:items-start sm:justify-between">
+            <div class="flex items-center gap-3 flex-wrap">
+              <a href="#${encodeURIComponent(domain.subdomain)}" class="terminal-text font-semibold text-[var(--accent)] hover:underline">${escapeHtml(domain.subdomain)}</a>
+              <span class="text-xs font-semibold ${statusClass}">${status}</span>
+              ${domain.proxied ? '<span class="text-xs text-[var(--body-fg)]/60">Proxied</span>' : ""}
+              ${domain.owner?.email ? `<span class="text-xs text-[var(--body-fg)]/60">${escapeHtml(domain.owner.email)}</span>` : ""}
+            </div>
+            <div class="flex flex-col gap-1 sm:text-right">${recordsHtml}</div>
+          </li>
+        `;
+            })
+            .join("");
+    } else {
+        domainsList.innerHTML = `
+          <li class="px-6 py-4 text-[var(--body-fg)]/70">No is-a.dev subdomains found for this user.</li>
+        `;
+    }
+
+    userResult.classList.remove("hidden");
+    userResult.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+async function performUserQuery(rawQuery) {
+    const userLoading = document.getElementById("user-loading");
+    const userError = document.getElementById("user-error");
+    const userResult = document.getElementById("user-result");
+
+    const username = normalizeUsername(rawQuery);
+
+    userError.classList.add("hidden");
+    userResult.classList.add("hidden");
+
+    if (!username) return;
+
+    if (!isValidUsername(username)) {
+        userError.textContent = `"${rawQuery.trim()}" is not a valid GitHub username.`;
+        userError.classList.remove("hidden");
+        return;
+    }
+
+    userLoading.classList.remove("hidden");
+
+    try {
+        const [profile, all] = await Promise.all([fetchUserProfile(username), loadFullData()]);
+
+        const domains = all.filter(
+            (domain) => domain.owner?.username?.toLowerCase() === username && !domain.reserved
+        );
+
+        if (!profile && !domains.length) {
+            userError.textContent = `GitHub user "${username}" not found.`;
+            userError.classList.remove("hidden");
+            return;
+        }
+
+        renderUserResult(username, profile, domains);
+    } catch (err) {
+        userError.textContent = `Failed to process query: ${err.message}`;
+        userError.classList.remove("hidden");
+    } finally {
+        userLoading.classList.add("hidden");
+    }
+}
+
 /* ------------------------ Registry Statistics ------------------------ */
 
 const chartTextColor = "#d1c4ff";
@@ -439,6 +574,14 @@ const whoisInput = document.getElementById("whois-input");
 whoisForm.addEventListener("submit", (event) => {
     event.preventDefault();
     performQuery(whoisInput.value);
+});
+
+const userForm = document.getElementById("user-form");
+const userInput = document.getElementById("user-input");
+
+userForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    performUserQuery(userInput.value);
 });
 
 document.querySelectorAll(".query-example").forEach((button) => {
