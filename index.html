@@ -170,6 +170,25 @@
                 </div>
             </div>
 
+            <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div class="border border-[var(--accent)] rounded-xl p-6">
+                    <p class="text-md text-[var(--body-fg)]/70">Active review queue</p>
+                    <p id="active-review-queue" class="mt-2 text-3xl font-bold text-[var(--accent)]">-</p>
+                </div>
+                <div class="border border-[var(--accent)] rounded-xl p-6">
+                    <p class="text-md text-[var(--body-fg)]/70">Needs changes</p>
+                    <p id="needs-changes" class="mt-2 text-3xl font-bold text-[var(--accent)]">-</p>
+                </div>
+                <div class="border border-[var(--accent)] rounded-xl p-6">
+                    <p class="text-md text-[var(--body-fg)]/70">Awaiting user response</p>
+                    <p id="awaiting-user-response" class="mt-2 text-3xl font-bold text-[var(--accent)]">-</p>
+                </div>
+                <div class="border border-[var(--accent)] rounded-xl p-6">
+                    <p class="text-md text-[var(--body-fg)]/70">Avg review time (last 100 PRs)</p>
+                    <p id="average-review-time" class="mt-2 text-3xl font-bold text-[var(--accent)]">-</p>
+                </div>
+            </div>
+
             <div class="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
                 <div class="border border-[var(--accent)] rounded-xl p-6">
                     <h2 class="text-xl font-semibold text-[var(--accent)] mb-4">DNS Record Types</h2>
