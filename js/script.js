@@ -1,5 +1,6 @@
 const RAW_API_BASE = "https://raw.is-a.dev";
 const FULL_DATA_URL = `${RAW_API_BASE}/v2.json`;
+const REGISTER_REPO_PULLS_API = "https://api.github.com/repos/is-a-dev/register/pulls";
 
 function formatNumber(num) {
     return Number(num).toLocaleString("en-US");
@@ -12,6 +13,65 @@ function escapeHtml(str) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#39;");
+}
+
+function formatDuration(durationMs) {
+    const minutes = durationMs / (1000 * 60);
+    if (minutes < 60) return `${Math.round(minutes)}m`;
+
+    const hours = minutes / 60;
+    if (hours < 24) return `${hours.toFixed(1)}h`;
+
+    const days = hours / 24;
+    return `${days.toFixed(1)}d`;
+}
+
+function hasLabel(pullRequest, label) {
+    return pullRequest.labels?.some((entry) => entry.name === label);
+}
+
+async function fetchRegisterPullRequests(state) {
+    const url = new URL(REGISTER_REPO_PULLS_API);
+    url.searchParams.set("state", state);
+    url.searchParams.set("sort", "created");
+    url.searchParams.set("direction", "desc");
+    url.searchParams.set("per_page", "100");
+
+    const response = await fetch(url.toString());
+    if (!response.ok) throw new Error(`GitHub PR API HTTP ${response.status}`);
+    return response.json();
+}
+
+async function fetchReviewMetrics() {
+    const [openPullRequests, closedPullRequests] = await Promise.all([
+        fetchRegisterPullRequests("open"),
+        fetchRegisterPullRequests("closed")
+    ]);
+
+    const openDomainPullRequests = openPullRequests.filter((pullRequest) => hasLabel(pullRequest, "domain"));
+    const needsChanges = openDomainPullRequests.filter((pullRequest) =>
+        hasLabel(pullRequest, "status: invalid")
+    ).length;
+    const awaitingUserResponse = openDomainPullRequests.filter((pullRequest) =>
+        hasLabel(pullRequest, "status: awaiting user response")
+    ).length;
+    const activeReviewQueue = openDomainPullRequests.length - needsChanges - awaitingUserResponse;
+
+    const reviewDurations = closedPullRequests
+        .filter((pullRequest) => pullRequest.created_at && pullRequest.closed_at)
+        .map((pullRequest) => new Date(pullRequest.closed_at).getTime() - new Date(pullRequest.created_at).getTime())
+        .filter((duration) => duration >= 0);
+
+    const averageReviewDuration = reviewDurations.length
+        ? reviewDurations.reduce((sum, duration) => sum + duration, 0) / reviewDurations.length
+        : null;
+
+    return {
+        activeReviewQueue: Math.max(activeReviewQueue, 0),
+        needsChanges,
+        awaitingUserResponse,
+        averageReviewDuration
+    };
 }
 
 /* ---------------------------- WHOIS Query ---------------------------- */
@@ -431,7 +491,10 @@ async function fetchStats() {
     const content = document.getElementById("content");
 
     try {
-        const json = await loadFullData();
+        const [json, reviewMetrics] = await Promise.all([
+            loadFullData(),
+            fetchReviewMetrics().catch(() => null)
+        ]);
         const data = json.filter((domain) => !domain.reserved);
         const subdomains = data.length;
 
@@ -514,6 +577,14 @@ async function fetchStats() {
             `${formatNumber(cloudflarePagesCount)} (${cloudflarePagesPercentage}%)`;
         document.getElementById("reserved-subdomains").textContent = formatNumber(reservedCount);
         document.getElementById("proxied-subdomains").textContent = `${formatNumber(proxiedCount)} (${proxiedPercentage}%)`;
+        if (reviewMetrics) {
+            document.getElementById("active-review-queue").textContent = formatNumber(reviewMetrics.activeReviewQueue);
+            document.getElementById("needs-changes").textContent = formatNumber(reviewMetrics.needsChanges);
+            document.getElementById("awaiting-user-response").textContent = formatNumber(reviewMetrics.awaitingUserResponse);
+            document.getElementById("average-review-time").textContent = reviewMetrics.averageReviewDuration
+                ? formatDuration(reviewMetrics.averageReviewDuration)
+                : "-";
+        }
 
         const recordsList = document.getElementById("stats-records-list");
 
